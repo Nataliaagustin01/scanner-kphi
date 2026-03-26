@@ -18,52 +18,75 @@
     <button class="btn" onclick="startCamera()">NYALAKAN KAMERA</button>
 
     <div id="result-card" class="result-card">
-        <div id="res-nama" style="font-size: 20px; font-weight: bold;"></div>
-        <div id="res-status" style="margin-top: 5px;"></div>
-    </div>
+    <div id="res-nama" style="font-size: 20px; font-weight: bold;"></div>
+    <div id="res-status" style="margin-top: 5px;"></div>
+    
+    <button id="btn-next" class="btn" style="background: #2E7D32; display: none; margin-top: 15px; width: 100%;" onclick="resetScanner()">
+        SIAP SCAN LAGI
+    </button>
+</div>
 
     <script>
         const html5QrCode = new Html5Qrcode("reader");
         // GANTI INI dengan link /exec Google Apps Script kamu!
         const GAS_URL = "https://script.google.com/macros/s/AKfycby2GDMsdhVZ5eOUG8gj9O_6yXi7rz32c8OIbKcXDR9ezlzpndJtZmn9fOVkXfnoTfhdtA/exec";
 
-        function startCamera() {
-            html5QrCode.start(
-                { facingMode: "environment" },
-                { fps: 10, qrbox: 250 },
-                (decodedText) => {
-                    sendToGas(decodedText);
+       let isLocked = false; 
+
+    function startCamera() {
+        html5QrCode.start(
+            { facingMode: "environment" },
+            { fps: 10, qrbox: 250 },
+            (decodedText) => {
+                if (isLocked) return; // Jika terkunci, abaikan QR yang lewat
+                
+                isLocked = true; // Kunci segera setelah QR terbaca
+                sendToGas(decodedText);
+            }
+        ).catch(err => alert("Error Kamera: " + err));
+    }
+
+    function sendToGas(id) {
+        const card = document.getElementById('result-card');
+        const status = document.getElementById('res-status');
+        const nama = document.getElementById('res-nama');
+        const btnNext = document.getElementById('btn-next');
+
+        card.style.display = "block";
+        btnNext.style.display = "none"; // Sembunyikan tombol saat proses
+        status.innerText = "Mengirim data ID: " + id + "...";
+        nama.innerText = "LOADING";
+
+        fetch(`${GAS_URL}?action=absensi&id=${id}`)
+            .then(response => response.json())
+            .then(res => {
+                if(res.success) {
+                    nama.innerText = res.nama;
+                    status.innerText = "✅ " + res.message;
+                    card.style.borderLeft = "8px solid green";
+                } else {
+                    nama.innerText = "GAGAL";
+                    status.innerText = "❌ " + res.message;
+                    card.style.borderLeft = "8px solid red";
                 }
-            ).catch(err => alert("Error Kamera: " + err));
-        }
+                
+                // Tampilkan tombol "Scan Lagi" setelah respon server diterima
+                btnNext.style.display = "block";
+            })
+            .catch(err => {
+                status.innerText = "Error Koneksi.";
+                btnNext.style.display = "block";
+            });
+    }
 
-        function sendToGas(id) {
-            const card = document.getElementById('result-card');
-            const status = document.getElementById('res-status');
-            const nama = document.getElementById('res-nama');
-
-            card.style.display = "block";
-            status.innerText = "Memproses ID: " + id + "...";
-            nama.innerText = "LOADING";
-
-            // Mengirim data ke Apps Script menggunakan mode no-cors atau via redirect
-            fetch(`${GAS_URL}?action=absensi&id=${id}`)
-                .then(response => response.json())
-                .then(res => {
-                    if(res.success) {
-                        nama.innerText = res.nama;
-                        status.innerText = "✅ " + res.message;
-                        card.style.borderLeft = "8px solid green";
-                    } else {
-                        nama.innerText = "GAGAL";
-                        status.innerText = "❌ " + res.message;
-                        card.style.borderLeft = "8px solid red";
-                    }
-                })
-                .catch(err => {
-                    status.innerText = "Error Koneksi ke Server.";
-                });
-        }
-    </script>
+    // Fungsi untuk membuka kunci dan membersihkan layar
+    function resetScanner() {
+        isLocked = false;
+        document.getElementById('btn-next').style.display = "none";
+        document.getElementById('res-nama').innerText = "";
+        document.getElementById('res-status').innerText = "Silakan scan kartu berikutnya...";
+        document.getElementById('result-card').style.borderLeft = "none";
+    }
+</script>
 </body>
 </html>
