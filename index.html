@@ -62,11 +62,11 @@
             .then(res => {
                 if(res.success) {
                     nama.innerText = res.nama;
-                    status.innerText = "✅ " + "Berhasil";
+                    status.innerText = "✅ Berhasil";
                     card.style.borderLeft = "8px solid green";
                 } else {
                     nama.innerText = "GAGAL";
-                    status.innerText = "❌ " + "Gagal";
+                    status.innerText = "❌ Gagal";
                     card.style.borderLeft = "8px solid red";
                 }
                 
